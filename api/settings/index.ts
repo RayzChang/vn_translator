@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { initDb, query } from '../lib/db'
-import { getBearerToken, verifyToken } from '../lib/auth'
-import { encrypt } from '../lib/encrypt'
+import { initDb, query } from '../lib/db.js'
+import { getBearerToken, verifyToken } from '../lib/auth.js'
+import { encrypt } from '../lib/encrypt.js'
 
 interface SettingsRow {
   api_key_encrypted: string | null

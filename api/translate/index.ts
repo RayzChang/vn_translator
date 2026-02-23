@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { initDb, query } from '../lib/db'
-import { getBearerToken, verifyToken } from '../lib/auth'
-import { decrypt } from '../lib/encrypt'
-import type { TranslateOptions } from '../lib/translate'
-import { translateWithGemini } from '../lib/translate'
+import { initDb, query } from '../lib/db.js'
+import { getBearerToken, verifyToken } from '../lib/auth.js'
+import { decrypt } from '../lib/encrypt.js'
+import type { TranslateOptions } from '../lib/translate.js'
+import { translateWithGemini } from '../lib/translate.js'
 
 interface SettingsRow {
   api_key_encrypted: string | null

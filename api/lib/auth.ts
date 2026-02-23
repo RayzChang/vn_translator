@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
 import * as jose from 'jose'
-import { query } from './db'
+import { query } from './db.js'
 
 const SALT_ROUNDS = 10
 const JWT_SECRET = process.env.JWT_SECRET || 'tw-vn-translator-dev-secret-change-in-production'

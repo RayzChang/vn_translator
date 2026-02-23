@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { initDb } from '../lib/db'
-import { findUserByLoginId, verifyPassword, createToken } from '../lib/auth'
-import { getJsonBody } from '../lib/parseBody'
+import { initDb } from '../lib/db.js'
+import { findUserByLoginId, verifyPassword, createToken } from '../lib/auth.js'
+import { getJsonBody } from '../lib/parseBody.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
