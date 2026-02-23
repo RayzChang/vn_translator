@@ -69,25 +69,52 @@ function buildSystemPrompt(
 ${direction === 'zh2vn' ? `【回譯】
 （把上面越南文「翻回」中文的約略意思，一句話，讓使用者確認沒傳達錯。）` : ''}
 
-請勿在以上標記之外多加其他內容。`
+【詞彙】
+（從本句提取可存入詞庫的詞條，每行一筆，格式：原文 | 譯文。規則：① 提取有意義的單字、詞組、短語；② 若詞組可拆出常用單字，兩筆都要存，例如「ăn KFC」要存「ăn KFC | 吃KFC」同時也存「ăn | 吃」；③ 每筆長度適中，單字或 2～5 詞的短語為主；④ 不要存整句。若無合適詞彙可留空。）`
+
 }
 
 const TRANSLATION_MARKER = '【翻譯】'
 const EXPLANATION_MARKER = '【解釋】'
 const BACK_MARKER = '【回譯】'
+const VOCAB_MARKER = '【詞彙】'
 
-function parseTranslationAndExplanation(raw: string): { translation: string; explanation: string; backTranslation?: string } {
+export interface VocabEntry {
+  source: string
+  target: string
+}
+
+function parseVocabEntries(text: string): VocabEntry[] {
+  const idx = text.indexOf(VOCAB_MARKER)
+  if (idx === -1) return []
+  const after = text.slice(idx + VOCAB_MARKER.length).replace(/^\s*\n?/, '').trim()
+  const lines = after.split(/\n/).map((l) => l.trim()).filter(Boolean)
+  const entries: VocabEntry[] = []
+  for (const line of lines) {
+    const sep = line.indexOf('|')
+    if (sep === -1) continue
+    const source = line.slice(0, sep).trim()
+    const target = line.slice(sep + 1).trim()
+    if (source && target && source.length <= 100 && target.length <= 100) {
+      entries.push({ source, target })
+    }
+  }
+  return entries
+}
+
+function parseTranslationAndExplanation(raw: string): { translation: string; explanation: string; backTranslation?: string; vocabEntries: VocabEntry[] } {
   const t = raw.trim()
   const transIdx = t.indexOf(TRANSLATION_MARKER)
   const explIdx = t.indexOf(EXPLANATION_MARKER)
   const backIdx = t.indexOf(BACK_MARKER)
   if (transIdx === -1 && explIdx === -1) {
-    return { translation: t, explanation: '' }
+    return { translation: t, explanation: '', vocabEntries: parseVocabEntries(t) }
   }
   let translation = ''
   let explanation = ''
   let backTranslation = ''
-  const endExpl = backIdx >= 0 ? backIdx : t.length
+  const vocabIdx = t.indexOf(VOCAB_MARKER)
+  const endExpl = backIdx >= 0 ? backIdx : (vocabIdx >= 0 ? vocabIdx : t.length)
   if (transIdx !== -1 && explIdx !== -1) {
     translation = t.slice(transIdx + TRANSLATION_MARKER.length, explIdx).replace(/^\s*\n?/, '').replace(/\n?$/, '').trim()
     explanation = t.slice(explIdx + EXPLANATION_MARKER.length, endExpl).replace(/^\s*\n?/, '').replace(/\n?$/, '').trim()
@@ -97,10 +124,14 @@ function parseTranslationAndExplanation(raw: string): { translation: string; exp
     explanation = t.slice(explIdx + EXPLANATION_MARKER.length, endExpl).replace(/^\s*\n?/, '').trim()
   }
   if (backIdx !== -1) {
-    backTranslation = t.slice(backIdx + BACK_MARKER.length).replace(/^\s*\n?/, '').trim()
+    const beforeVocab = t.indexOf(VOCAB_MARKER)
+    const endBack = beforeVocab >= 0 ? beforeVocab : t.length
+    backTranslation = t.slice(backIdx + BACK_MARKER.length, endBack).replace(/^\s*\n?/, '').trim()
   }
-  return { translation, explanation, backTranslation: backTranslation || undefined }
+  const vocabEntries = parseVocabEntries(t)
+  return { translation, explanation, backTranslation: backTranslation || undefined, vocabEntries }
 }
+
 
 export interface TranslateOptions {
   region: Region
@@ -115,7 +146,7 @@ export async function translateWithGemini(
   apiKey: string,
   text: string,
   options: TranslateOptions
-): Promise<{ translation: string; explanation: string; backTranslation?: string }> {
+): Promise<{ translation: string; explanation: string; backTranslation?: string; vocabEntries: VocabEntry[] }> {
   const genAI = new GoogleGenerativeAI(apiKey.trim())
   const model = genAI.getGenerativeModel({
     model: options.modelId,

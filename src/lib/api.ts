@@ -99,8 +99,8 @@ export async function apiTranslate(
   token: string,
   text: string,
   options: TranslateOptions
-): Promise<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean }> {
-  return request<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean }>('/translate', {
+): Promise<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean; vocabSavedCount?: number }> {
+  return request<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean; vocabSavedCount?: number }>('/translate', {
     method: 'POST',
     token,
     body: { text, options }

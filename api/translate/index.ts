@@ -92,7 +92,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const result = await translateWithGemini(apiKey, text, options)
-    return res.status(200).json(result)
+    let vocabSavedCount = 0
+    if (result.vocabEntries?.length) {
+      for (const { source, target } of result.vocabEntries) {
+        if (!source.trim() || !target.trim()) continue
+        try {
+          await query(
+            `INSERT INTO vocabulary (user_id, direction, source_text, target_text, note)
+             VALUES ($1, $2, $3, $4, NULL)
+             ON CONFLICT (user_id, direction, source_text)
+             DO UPDATE SET target_text = EXCLUDED.target_text, updated_at = NOW()`,
+            [payload.userId, direction, source.trim(), target.trim()]
+          )
+          vocabSavedCount++
+        } catch (err) {
+          console.error('vocab insert', err)
+        }
+      }
+    }
+    return res.status(200).json({
+      translation: result.translation,
+      explanation: result.explanation,
+      backTranslation: result.backTranslation,
+      fromVocabulary: false,
+      ...(vocabSavedCount > 0 ? { vocabSavedCount } : {})
+    })
   } catch (e) {
     console.error('translate', e)
     const msg = e instanceof Error ? e.message : '翻譯失敗'

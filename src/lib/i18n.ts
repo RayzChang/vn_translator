@@ -106,7 +106,8 @@ const tw = {
   addedToVocabulary: '已加入詞庫',
   updatedVocabulary: '已更新詞庫',
   vocabLoginRequired: '需登入才能使用詞庫',
-  fromVocabulary: '來自詞庫'
+  fromVocabulary: '來自詞庫',
+  vocabAutoSaved: '已自動存入 {{n}} 筆詞彙'
 }
 
 const vn: Messages = {
@@ -198,7 +199,8 @@ const vn: Messages = {
   addedToVocabulary: 'Đã thêm vào từ điển',
   updatedVocabulary: 'Đã cập nhật từ điển',
   vocabLoginRequired: 'Cần đăng nhập để dùng từ điển',
-  fromVocabulary: 'Từ từ điển'
+  fromVocabulary: 'Từ từ điển',
+  vocabAutoSaved: 'Đã tự động lưu {{n}} mục từ vựng'
 }
 
 const messages: Record<Locale, Messages> = { tw, vn }

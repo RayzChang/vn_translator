@@ -89,6 +89,7 @@ function App() {
   const [error, setError] = useState('')
   const [copyToast, setCopyToast] = useState(false)
   const [vocabToast, setVocabToast] = useState<'added' | 'updated' | null>(null)
+  const [vocabAutoSavedCount, setVocabAutoSavedCount] = useState<number | null>(null)
   const [lastTranslated, setLastTranslated] = useState<{ source: string; target: string; direction: Direction } | null>(null)
   const [fromVocabulary, setFromVocabulary] = useState(false)
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
@@ -160,6 +161,11 @@ function App() {
       setExplanation(result.explanation)
       setBackTranslation(result.backTranslation ?? '')
       setFromVocabulary((result as { fromVocabulary?: boolean }).fromVocabulary ?? false)
+      const savedCount = (result as { vocabSavedCount?: number }).vocabSavedCount
+      if (savedCount && savedCount > 0) {
+        setVocabAutoSavedCount(savedCount)
+        setTimeout(() => setVocabAutoSavedCount(null), 2500)
+      }
       setLastTranslated({ source: input.trim(), target: result.translation, direction })
       addHistory({ input: input.trim(), output: result.translation, direction })
       setHistoryList(getHistory())
@@ -660,9 +666,9 @@ function App() {
             )}
           </div>
 
-          {(copyToast || vocabToast) && (
+          {(copyToast || vocabToast || vocabAutoSavedCount) && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-slate-800/95 dark:bg-slate-700/95 backdrop-blur-sm text-white text-sm shadow-lg z-50 animate-fade-in" style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }} role="status">
-              {copyToast ? t(locale, 'copied') : vocabToast === 'updated' ? t(locale, 'updatedVocabulary') : t(locale, 'addedToVocabulary')}
+              {copyToast ? t(locale, 'copied') : vocabAutoSavedCount ? t(locale, 'vocabAutoSaved').replace('{{n}}', String(vocabAutoSavedCount)) : vocabToast === 'updated' ? t(locale, 'updatedVocabulary') : t(locale, 'addedToVocabulary')}
             </div>
           )}
         </main>

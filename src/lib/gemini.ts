@@ -148,6 +148,9 @@ function buildSystemPrompt(
 ${direction === 'zh2vn' ? `【回譯】
 （把上面越南文「翻回」中文的約略意思，一句話，讓使用者確認沒傳達錯。）` : ''}
 
+【詞彙】
+（從本句提取可存入詞庫的詞條，每行一筆，格式：原文 | 譯文。規則：① 提取有意義的單字、詞組、短語；② 若詞組可拆出常用單字，兩筆都要存，例如「ăn KFC」要存「ăn KFC | 吃KFC」同時也存「ăn | 吃」；③ 每筆長度適中，單字或 2～5 詞的短語為主；④ 不要存整句。若無合適詞彙可留空。）
+
 請勿在以上標記之外多加其他內容。`
 }
 
@@ -161,12 +164,14 @@ export interface TranslateResult {
 const TRANSLATION_MARKER = '【翻譯】'
 const EXPLANATION_MARKER = '【解釋】'
 const BACK_MARKER = '【回譯】'
+const VOCAB_MARKER = '【詞彙】'
 
 function parseTranslationAndExplanation(raw: string): TranslateResult {
   const t = raw.trim()
   const transIdx = t.indexOf(TRANSLATION_MARKER)
   const explIdx = t.indexOf(EXPLANATION_MARKER)
   const backIdx = t.indexOf(BACK_MARKER)
+  const vocabIdx = t.indexOf(VOCAB_MARKER)
   if (transIdx === -1 && explIdx === -1) {
     return { translation: t, explanation: '' }
   }
@@ -175,7 +180,7 @@ function parseTranslationAndExplanation(raw: string): TranslateResult {
   let backTranslation = ''
   const afterTrans = transIdx >= 0 ? transIdx + TRANSLATION_MARKER.length : 0
   const afterExpl = explIdx >= 0 ? explIdx + EXPLANATION_MARKER.length : 0
-  const endExpl = backIdx >= 0 ? backIdx : t.length
+  const endExpl = backIdx >= 0 ? backIdx : (vocabIdx >= 0 ? vocabIdx : t.length)
   if (transIdx !== -1 && explIdx !== -1) {
     translation = t.slice(afterTrans, explIdx).replace(/^\s*\n?/, '').replace(/\n?$/, '').trim()
     explanation = t.slice(afterExpl, endExpl).replace(/^\s*\n?/, '').replace(/\n?$/, '').trim()
@@ -185,7 +190,8 @@ function parseTranslationAndExplanation(raw: string): TranslateResult {
     explanation = t.slice(afterExpl, endExpl).replace(/^\s*\n?/, '').trim()
   }
   if (backIdx !== -1) {
-    backTranslation = t.slice(backIdx + BACK_MARKER.length).replace(/^\s*\n?/, '').trim()
+    const backEnd = vocabIdx >= 0 ? vocabIdx : t.length
+    backTranslation = t.slice(backIdx + BACK_MARKER.length, backEnd).replace(/^\s*\n?/, '').trim()
   }
   return { translation, explanation, backTranslation: backTranslation || undefined }
 }
