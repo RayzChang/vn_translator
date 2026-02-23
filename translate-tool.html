@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台越溝通神器</title>
+    <style>
+        /* Vibe Code 風格：簡潔、黑夜模式 */
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #2d2d2d;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 400px;
+            text-align: center;
+        }
+        h2 { margin-top: 0; color: #4CAF50; }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            background-color: #3d3d3d;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            resize: none;
+            margin-bottom: 10px;
+        }
+        
+        /* 通用按鈕樣式 */
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        
+        /* 結果區塊樣式修正 */
+        .result-box {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        /* 標題與複製按鈕排同一列 */
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .label { font-size: 12px; color: #888; }
+
+        .output {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            min-height: 60px;
+            color: #fff;
+            line-height: 1.6; /* 增加行距，讓字好讀一點 */
+            word-wrap: break-word; /* 防止太長的單字破版 */
+        }
+
+        /* 複製按鈕專用樣式 (覆寫上面的通用按鈕設定) */
+        .copy-btn {
+            background-color: #555;
+            font-size: 12px;
+            padding: 5px 12px;
+            width: auto; /* 讓按鈕寬度隨文字自動調整 */
+            border-radius: 4px;
+            font-weight: normal;
+        }
+        .copy-btn:hover { background-color: #777; }
+        .copy-btn:active { background-color: #4CAF50; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🇻🇳 台越溝通神器 🇹🇼</h2>
+    
+    <div style="text-align: left;">
+        <span class="label">輸入內容 (自動偵測中文/越文)</span>
+        <textarea id="inputText" placeholder="例如：明天早上9點要開會... 或 Báo cáo ngày mai..."></textarea>
+    </div>
+
+    <button id="sendBtn" onclick="translateText()">翻譯 / Dịch</button>
+
+    <div class="result-box">
+        <div class="result-header">
+            <span class="label">翻譯結果</span>
+            <button class="copy-btn" onclick="copyResult()">複製 / Copy</button>
+        </div>
+        <div class="output" id="outputText">
+            等待輸入...
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 請確認這裡是你 n8n 的 Production Webhook URL
+    // ==========================================
+    const WEBHOOK_URL = 'http://localhost:5678/webhook/translate'; 
+
+    async function translateText() {
+        const input = document.getElementById('inputText').value;
+        const btn = document.getElementById('sendBtn');
+        const output = document.getElementById('outputText');
+
+        if (!input) return;
+
+        // UI 狀態切換
+        btn.disabled = true;
+        btn.innerText = "翻譯中... / Đang dịch...";
+        output.innerText = "AI 正在思考...";
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: input
+                })
+            });
+
+            const data = await response.json();
+            
+            // === 萬能解析區塊 Start (自動剝洋蔥) ===
+            let finalResult = data.text || data.message || JSON.stringify(data);
+
+            // 狀況一：如果是物件 (例如 { "text": "..." })
+            if (typeof finalResult === 'object') {
+                finalResult = finalResult.text || JSON.stringify(finalResult);
+            }
+            
+            // 狀況二：如果是字串但長得像 JSON (例如 "{\"text\":...}")
+            if (typeof finalResult === 'string' && finalResult.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(finalResult);
+                    if (parsed.text) finalResult = parsed.text;
+                } catch (e) {
+                    // 解析失敗就算了，直接顯示原文
+                }
+            }
+
+            output.innerText = finalResult;
+            // === 萬能解析區塊 End ===
+
+        } catch (error) {
+            output.innerText = "錯誤：連線失敗。\n請確認：\n1. n8n 已啟動 (Publish)\n2. 網址是否正確";
+            console.error(error);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "翻譯 / Dịch";
+        }
+    }
+
+    function copyResult() {
+        const text = document.getElementById('outputText').innerText;
+        navigator.clipboard.writeText(text);
+        
+        // 簡單的視覺回饋
+        const btn = document.querySelector('.copy-btn');
+        const originalText = btn.innerText;
+        btn.innerText = "已複製！";
+        setTimeout(() => {
+            btn.innerText = originalText;
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>

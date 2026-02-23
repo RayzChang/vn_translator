@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 主背景：輕量網格 + 漸層，更有層次 */
+.app-bg {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(167, 243, 208, 0.2), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(94, 234, 212, 0.12), transparent),
+    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(196, 181, 253, 0.08), transparent);
+}
+.dark .app-bg {
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(20, 184, 166, 0.06), transparent);
+}
+
+/* 玻璃卡片 */
+.glass-card {
+  @apply bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/80;
+}
+.glass-header {
+  @apply backdrop-blur-xl bg-white/10 dark:bg-white/5 border-b border-white/10;
+}
+
+/* 主按鈕：漸層 + 微動效 */
+.btn-primary {
+  @apply bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600
+    text-white font-semibold shadow-lg shadow-emerald-500/25
+    active:scale-[0.98] transition-all duration-200;
+}
+
+/* 底部選項面板：滑出動畫 + 安全區域 */
+.options-panel {
+  transform: translateY(0);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  max-height: 85vh;
+}
+.options-panel.is-closed {
+  transform: translateY(100%);
+}
+
+.main-content {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 輸入/結果區聚焦時微光暈 */
+.input-card:focus-within {
+  box-shadow: 0 0 0 2px rgb(16 185 129 / 0.2);
+}
