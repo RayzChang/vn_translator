@@ -7,6 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 超過 2MB 的 asset 改為警告不中斷建置（icon 過大時仍可 deploy）
+      showMaximumFileSizeToCacheInBytesWarning: true,
       manifest: {
         name: '台越翻譯機',
         short_name: '台越翻譯',
@@ -25,7 +27,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024 // 6 MiB（icon-512/192 約 4.74 MB）
+        maximumFileSizeToCacheInBytes: 6291456 // 6 MiB，讓 4.74 MB 的 icon 可 precache
       }
     })
   ]
