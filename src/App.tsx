@@ -18,6 +18,7 @@ import {
 import { estimateCost } from './lib/cost'
 import { getHistory, addHistory, clearHistory, type HistoryItem } from './lib/history'
 import { getStoredDark, setStoredDark } from './lib/theme'
+import { getStoredLocale, setStoredLocale, t, type Locale, type MessageKey } from './lib/i18n'
 import {
   getStoredToken,
   getStoredUser,
@@ -63,6 +64,7 @@ function App() {
   const [apiKey, setApiKey] = useState(getStoredApiKey)
   const [modelId, setModelId] = useState<GeminiModelId>(getStoredModel)
   const [dark, setDark] = useState(getStoredDark)
+  const [locale, setLocale] = useState<Locale>(getStoredLocale)
   const [showSettings, setShowSettings] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -99,6 +101,7 @@ function App() {
       .then((s) => {
         setModelId((s.modelId as GeminiModelId) || 'gemini-2.5-flash')
         if (s.preferences?.dark !== undefined) setDark(Boolean(s.preferences.dark))
+        if (s.preferences?.locale === 'vn') setLocale('vn')
       })
       .catch(() => {})
   }, [token, user])
@@ -169,7 +172,7 @@ function App() {
         await apiSaveSettings(token, {
           apiKey: apiKey || undefined,
           modelId,
-          preferences: { dark }
+          preferences: { dark, locale }
         })
         if (apiKey) setStoredApiKey(apiKey)
         setShowSettings(false)
@@ -315,7 +318,7 @@ function App() {
 
   const optionsSummary =
     audience !== 'none' || tone !== 'auto'
-      ? [region === 'south' ? '南越' : '北越', gender === 'female' ? '女' : gender === 'male' ? '男' : '', audience !== 'none' ? AUDIENCE_LABELS[audience].replace(/（[^）]*）/g, '').trim() : '', tone !== 'auto' ? TONE_LABELS[tone] : '']
+      ? [region === 'south' ? t(locale, 'southShort') : t(locale, 'northShort'), gender === 'female' ? t(locale, 'femaleShort') : gender === 'male' ? t(locale, 'maleShort') : '', audience !== 'none' ? t(locale, `audience_${audience}` as MessageKey).replace(/（[^）]*）|\([^)]*\)/g, '').trim() : '', tone !== 'auto' ? t(locale, `tone_${tone}` as MessageKey) : '']
           .filter(Boolean)
           .join(' · ')
       : null
@@ -325,7 +328,7 @@ function App() {
       {/* 離線提示 */}
       {!isOnline && (
         <div className="bg-amber-500/95 backdrop-blur-sm text-white text-center py-2.5 text-sm px-4 shadow-sm">
-          目前離線，需連線後才能翻譯
+          {t(locale, 'offlineHint')}
         </div>
       )}
 
@@ -336,7 +339,7 @@ function App() {
       >
         <div className="flex items-center gap-2.5">
           <img src="/logo.svg" alt="" className="w-9 h-9 rounded-xl bg-white/20 p-1 shadow-inner" />
-          <h1 className="text-lg font-semibold tracking-tight drop-shadow-sm">台越翻譯機</h1>
+          <h1 className="text-lg font-semibold tracking-tight drop-shadow-sm">{t(locale, 'appTitle')}</h1>
         </div>
         <div className="flex items-center gap-1.5">
           {user ? (
@@ -349,13 +352,13 @@ function App() {
             onClick={() => (user ? handleLogout() : setShowAuth(true))}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all duration-200 text-sm"
           >
-            {user ? '登出' : '登入'}
+            {user ? t(locale, 'logout') : t(locale, 'login')}
           </button>
           <button
             type="button"
             onClick={() => setShowHistory(true)}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all duration-200"
-            aria-label="歷史紀錄"
+            aria-label={t(locale, 'history')}
           >
             <HistoryIcon />
           </button>
@@ -363,7 +366,7 @@ function App() {
             type="button"
             onClick={() => setShowOptions(true)}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all duration-200"
-            aria-label="翻譯選項"
+            aria-label={t(locale, 'options')}
           >
             <FilterIcon className="w-5 h-5" />
           </button>
@@ -371,7 +374,7 @@ function App() {
             type="button"
             onClick={() => setShowSettings(true)}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all duration-200"
-            aria-label="設定"
+            aria-label={t(locale, 'settings')}
           >
             <SettingsIcon className="w-5 h-5" />
           </button>
@@ -382,29 +385,29 @@ function App() {
       {showSettings && (
         <div className="flex-1 overflow-auto p-4 max-w-lg mx-auto w-full animate-fade-in">
           <div className="glass-card rounded-3xl shadow-card-hover dark:shadow-none p-6 animate-slide-up">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">設定</h2>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">{t(locale, 'settings')}</h2>
             {user && (
               <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-3">
-                已登入 · 金鑰與設定會同步到所有裝置
+                {t(locale, 'loggedInSync')}
               </p>
             )}
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-              請至{' '}
+              {t(locale, 'apiKeyIntro')}{' '}
               <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 underline">
-                Google AI Studio
+                {t(locale, 'apiKeyLink')}
               </a>{' '}
-              取得免費 API 金鑰。{user ? '儲存後會加密存於伺服器，多裝置共用。' : '金鑰僅存於本裝置。'}
+              {t(locale, 'apiKeyIntro2')}{user ? t(locale, 'apiKeySync') : t(locale, 'apiKeyLocal')}
             </p>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Gemini API 金鑰"
+              placeholder={t(locale, 'apiKeyPlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 outline-none"
               autoComplete="off"
             />
             <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">使用模型</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'useModel')}</label>
               <select
                 value={modelId}
                 onChange={(e) => setModelId(e.target.value as GeminiModelId)}
@@ -414,10 +417,21 @@ function App() {
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">建議選 Flash 系列：速度快、成本低。</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t(locale, 'modelHint')}</p>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'language')}</label>
+              <select
+                value={locale}
+                onChange={(e) => { const v = e.target.value as Locale; setLocale(v); setStoredLocale(v); }}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                <option value="tw">{t(locale, 'langTw')}</option>
+                <option value="vn">{t(locale, 'langVn')}</option>
+              </select>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm text-slate-700 dark:text-slate-300">深色模式</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">{t(locale, 'darkMode')}</span>
               <button
                 type="button"
                 role="switch"
@@ -434,7 +448,7 @@ function App() {
                 onClick={() => { handleClearHistory(); setShowSettings(false) }}
                 className="text-sm text-slate-500 dark:text-slate-400 hover:text-red-600"
               >
-                清除翻譯紀錄
+                {t(locale, 'clearHistory')}
               </button>
             </div>
             {settingsError && (
@@ -447,10 +461,10 @@ function App() {
                 disabled={settingsSaving}
                 className="btn-primary flex-1 py-3 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {settingsSaving ? '儲存中…' : '儲存並關閉'}
+                {settingsSaving ? t(locale, 'saving') : t(locale, 'saveAndClose')}
               </button>
               <button type="button" onClick={() => setShowSettings(false)} disabled={settingsSaving} className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50">
-                取消
+                {t(locale, 'cancel')}
               </button>
             </div>
           </div>
@@ -462,13 +476,13 @@ function App() {
         <>
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setShowAuth(false)} aria-hidden />
           <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm p-5 glass-card rounded-3xl shadow-2xl animate-slide-up border border-slate-200/60 dark:border-slate-700/80">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">登入 / 註冊</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">登入後可同步 API 金鑰與設定到所有裝置</p>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">{t(locale, 'loginRegister')}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t(locale, 'loginSyncHint')}</p>
             <input
               type="text"
               value={authLoginId}
               onChange={(e) => setAuthLoginId(e.target.value)}
-              placeholder="帳號（信箱或自訂）"
+              placeholder={t(locale, 'accountPlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 mb-3"
               autoComplete="username"
             />
@@ -476,21 +490,21 @@ function App() {
               type="password"
               value={authPassword}
               onChange={(e) => setAuthPassword(e.target.value)}
-              placeholder="密碼（至少 6 字元）"
+              placeholder={t(locale, 'passwordPlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 placeholder-slate-400 mb-3"
               autoComplete="current-password"
             />
             {error && <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={() => handleAuthSubmit(false)} disabled={authLoading} className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50">
-                登入
+                {t(locale, 'login')}
               </button>
               <button type="button" onClick={() => handleAuthSubmit(true)} disabled={authLoading} className="flex-1 py-3 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50">
-                註冊
+                {t(locale, 'register')}
               </button>
             </div>
             <button type="button" onClick={() => setShowAuth(false)} className="mt-3 w-full text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">
-              取消
+              {t(locale, 'cancel')}
             </button>
           </div>
         </>
@@ -505,14 +519,14 @@ function App() {
               onClick={() => setDirection('vn2zh')}
               className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${direction === 'vn2zh' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 active:scale-[0.98]'}`}
             >
-              越 → 中
+              {t(locale, 'directionVn2Zh')}
             </button>
             <button
               type="button"
               onClick={() => setDirection('zh2vn')}
               className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${direction === 'zh2vn' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 active:scale-[0.98]'}`}
             >
-              中 → 越
+              {t(locale, 'directionZh2Vn')}
             </button>
           </div>
 
@@ -528,7 +542,7 @@ function App() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={direction === 'vn2zh' ? '貼上或輸入越南文…' : '輸入中文…'}
+                placeholder={direction === 'vn2zh' ? t(locale, 'inputPlaceholderVn') : t(locale, 'inputPlaceholderZh')}
                 rows={4}
                 className="flex-1 w-full resize-none border-0 p-0 bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:ring-0 focus:outline-none min-h-[100px]"
               />
@@ -537,16 +551,16 @@ function App() {
                 onClick={startVoiceInput}
                 disabled={isListening}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
-                aria-label="語音輸入"
+                aria-label={t(locale, 'voiceInput')}
               >
                 {isListening ? <MicOffIcon /> : <MicIcon />}
               </button>
             </div>
             {costEstimate && (
               <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/80 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-0">
-                <span>字數 {input.length}</span>
-                <span>預估 Token 約 {costEstimate.inputTokens + costEstimate.outputTokens}</span>
-                <span>預估花費 約 NT$ {costEstimate.twd < 0.01 ? '< 0.01' : costEstimate.twd.toFixed(2)}</span>
+                <span>{t(locale, 'charCount')} {input.length}</span>
+                <span>{t(locale, 'estToken')} {costEstimate.inputTokens + costEstimate.outputTokens}</span>
+                <span>{t(locale, 'estCost')} {costEstimate.twd < 0.01 ? '< 0.01' : costEstimate.twd.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -557,7 +571,7 @@ function App() {
             disabled={loading || !input.trim() || !isOnline || (!user && !apiKey.trim())}
             className="btn-primary w-full py-4 rounded-2xl text-base min-h-[52px] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100"
           >
-            {loading ? '翻譯中…' : '翻譯'}
+            {loading ? t(locale, 'translating') : t(locale, 'translate')}
           </button>
 
           {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
@@ -565,20 +579,20 @@ function App() {
           <div className="mt-4 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                {direction === 'vn2zh' ? '中文' : '越南文'}
+                {direction === 'vn2zh' ? t(locale, 'chinese') : t(locale, 'vietnamese')}
               </span>
               {output && (
                 <div className="flex items-center gap-1">
-                  <button type="button" onClick={swapInputOutput} className="text-sm text-slate-500 dark:text-slate-400 hover:text-emerald-600 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="對調">
+                  <button type="button" onClick={swapInputOutput} className="text-sm text-slate-500 dark:text-slate-400 hover:text-emerald-600 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t(locale, 'swap')}>
                     <SwapIcon />
                   </button>
                   {'share' in navigator && (
-                    <button type="button" onClick={shareResult} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="分享">
-                      分享
+                    <button type="button" onClick={shareResult} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t(locale, 'share')}>
+                      {t(locale, 'share')}
                     </button>
                   )}
                   <button type="button" onClick={copyResult} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium min-h-[44px] min-w-[44px] flex items-center justify-center">
-                    複製
+                    {t(locale, 'copy')}
                   </button>
                 </div>
               )}
@@ -590,14 +604,14 @@ function App() {
             {/* 中→越時：回譯成中文約略意思，方便確認沒傳達錯 */}
             {direction === 'zh2vn' && backTranslation && (
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                回譯（約略意思）：{backTranslation}
+                {t(locale, 'backTranslationLabel')}{backTranslation}
               </p>
             )}
 
             {/* 解釋區塊：單字／文法／縮寫 */}
             {explanation && (
               <div className="mt-3">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1.5">解釋</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1.5">{t(locale, 'explanation')}</p>
                 <div className="glass-card rounded-3xl shadow-card p-4 text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap overflow-auto border border-slate-200/60 dark:border-slate-700/80 [&>strong]:font-semibold [&>strong]:text-slate-800 dark:[&>strong]:text-slate-200">
                   <ExplanationText text={explanation} />
                 </div>
@@ -607,7 +621,7 @@ function App() {
 
           {copyToast && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-slate-800/95 dark:bg-slate-700/95 backdrop-blur-sm text-white text-sm shadow-lg z-50 animate-fade-in" style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }} role="status">
-              已複製
+              {t(locale, 'copied')}
             </div>
           )}
         </main>
@@ -617,56 +631,56 @@ function App() {
       {showOptions && !showSettings && (
         <>
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setShowOptions(false)} aria-hidden />
-          <div className="fixed left-0 right-0 bottom-0 z-50 glass-card rounded-t-[1.75rem] shadow-2xl overflow-hidden options-panel border-b-0" role="dialog" aria-label="翻譯選項">
+          <div className="fixed left-0 right-0 bottom-0 z-50 glass-card rounded-t-[1.75rem] shadow-2xl overflow-hidden options-panel border-b-0" role="dialog" aria-label={t(locale, 'options')}>
             <div className="sticky top-0 glass-card border-b border-slate-200/60 dark:border-slate-700/80 px-4 py-3 flex items-center justify-between rounded-t-[1.75rem]">
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">翻譯選項</h3>
-              <button type="button" onClick={() => setShowOptions(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-medium rounded-xl hover:bg-emerald-500/10 transition-colors">完成</button>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t(locale, 'options')}</h3>
+              <button type="button" onClick={() => setShowOptions(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-medium rounded-xl hover:bg-emerald-500/10 transition-colors">{t(locale, 'done')}</button>
             </div>
             <div className="overflow-auto p-4 pb-8 max-h-[70vh]">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">快速預設</p>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">{t(locale, 'quickPreset')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 <button type="button" onClick={() => applyPreset(PRESET_WIFE)} className="py-3.5 px-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/80 dark:border-amber-700/50 text-amber-800 dark:text-amber-200 text-sm font-medium hover:shadow-card-hover active:scale-[0.98] transition-all text-left">
-                  🌟 跟太太聊天
+                  🌟 {t(locale, 'presetWife')}
                 </button>
                 <button type="button" onClick={() => applyPreset(PRESET_ELDER)} className="py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-700/30 border border-slate-200/80 dark:border-slate-600/50 text-slate-700 dark:text-slate-300 text-sm font-medium hover:shadow-card-hover active:scale-[0.98] transition-all text-left">
-                  對長輩（敬語）
+                  {t(locale, 'presetElder')}
                 </button>
                 <button type="button" onClick={() => applyPreset(PRESET_COLLEAGUE)} className="py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-700/30 border border-slate-200/80 dark:border-slate-600/50 text-slate-700 dark:text-slate-300 text-sm font-medium hover:shadow-card-hover active:scale-[0.98] transition-all text-left">
-                  對同事
+                  {t(locale, 'presetColleague')}
                 </button>
                 <button type="button" onClick={() => applyPreset(PRESET_FORMAL)} className="py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-700/30 border border-slate-200/80 dark:border-slate-600/50 text-slate-700 dark:text-slate-300 text-sm font-medium hover:shadow-card-hover active:scale-[0.98] transition-all text-left">
-                  正式用
+                  {t(locale, 'presetFormal')}
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">地區</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'region')}</label>
                   <select value={region} onChange={(e) => setRegion(e.target.value as Region)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200">
-                    <option value="south">南越（西貢）</option>
-                    <option value="north">北越（河內）</option>
+                    <option value="south">{t(locale, 'south')}</option>
+                    <option value="north">{t(locale, 'north')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">說話者性別</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'gender')}</label>
                   <select value={gender} onChange={(e) => setGender(e.target.value as Gender)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200">
-                    <option value="female">女性</option>
-                    <option value="male">男性</option>
-                    <option value="neutral">不區分</option>
+                    <option value="female">{t(locale, 'female')}</option>
+                    <option value="male">{t(locale, 'male')}</option>
+                    <option value="neutral">{t(locale, 'neutral')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">說話對象</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'audience')}</label>
                   <select value={audience} onChange={(e) => setAudience(e.target.value as Audience)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                     {(Object.keys(AUDIENCE_LABELS) as Audience[]).map((key) => (
-                      <option key={key} value={key}>{AUDIENCE_LABELS[key]}</option>
+                      <option key={key} value={key}>{t(locale, `audience_${key}` as MessageKey)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">語氣</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t(locale, 'tone')}</label>
                   <select value={tone} onChange={(e) => setTone(e.target.value as Tone)} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                     {(Object.keys(TONE_LABELS) as Tone[]).map((key) => (
-                      <option key={key} value={key}>{TONE_LABELS[key]}</option>
+                      <option key={key} value={key}>{t(locale, `tone_${key}` as MessageKey)}</option>
                     ))}
                   </select>
                 </div>
@@ -682,12 +696,12 @@ function App() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setShowHistory(false)} aria-hidden />
           <div className="fixed right-0 top-0 bottom-0 w-full max-w-sm z-50 glass-card shadow-2xl overflow-hidden flex flex-col border-l border-slate-200/60 dark:border-slate-700/80 animate-slide-up">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/60 dark:border-slate-700/80">
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">翻譯紀錄</h3>
-              <button type="button" onClick={() => setShowHistory(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">關閉</button>
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t(locale, 'history')}</h3>
+              <button type="button" onClick={() => setShowHistory(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">{t(locale, 'close')}</button>
             </div>
             <div className="flex-1 overflow-auto p-4">
               {historyList.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">尚無紀錄</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t(locale, 'historyEmpty')}</p>
               ) : (
                 <ul className="space-y-2.5">
                   {historyList.map((item) => (
@@ -697,7 +711,7 @@ function App() {
                         onClick={() => openHistoryItem(item)}
                         className="w-full text-left p-3.5 rounded-2xl glass-card hover:shadow-card-hover active:scale-[0.99] transition-all duration-200 border border-slate-200/60 dark:border-slate-700/80"
                       >
-                        <span className="inline-block text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full mb-2">{item.direction === 'vn2zh' ? '越→中' : '中→越'}</span>
+                        <span className="inline-block text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full mb-2">{item.direction === 'vn2zh' ? t(locale, 'vn2zhShort') : t(locale, 'zh2vnShort')}</span>
                         <p className="text-sm text-slate-800 dark:text-slate-200 line-clamp-2">{item.input}</p>
                         <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1.5 line-clamp-2">{item.output}</p>
                       </button>
