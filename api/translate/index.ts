@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { initDb, query } from '../lib/db'
 import { getBearerToken, verifyToken } from '../lib/auth'
 import { decrypt } from '../lib/encrypt'
+import type { TranslateOptions } from '../lib/translate'
 import { translateWithGemini } from '../lib/translate'
 
 interface SettingsRow {
@@ -51,12 +52,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: '請輸入要翻譯的文字' })
   }
 
-  const options = {
-    region: (opts.region as 'south' | 'north') || 'south',
-    gender: (opts.gender as 'female' | 'male' | 'neutral') || 'male',
-    direction: (opts.direction as 'vn2zh' | 'zh2vn') || 'vn2zh',
-    audience: (opts.audience as string) || 'none',
-    tone: (opts.tone as string) || 'auto',
+  const options: TranslateOptions = {
+    region: (opts.region === 'north' ? 'north' : 'south'),
+    gender: (opts.gender === 'female' || opts.gender === 'neutral' ? opts.gender : 'male'),
+    direction: (opts.direction === 'zh2vn' ? 'zh2vn' : 'vn2zh'),
+    audience: (['none', 'elder', 'peer', 'younger', 'lover', 'boss', 'colleague', 'friend', 'stranger'].includes(String(opts.audience)) ? opts.audience : 'none') as TranslateOptions['audience'],
+    tone: (['auto', 'formal', 'casual', 'intimate', 'polite'].includes(String(opts.tone)) ? opts.tone : 'auto') as TranslateOptions['tone'],
     modelId: (opts.modelId as string) || row.model_id || 'gemini-2.5-flash'
   }
 
