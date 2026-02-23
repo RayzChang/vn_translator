@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { initDb } from '../lib/db'
 import { findUserByLoginId, verifyPassword, createToken } from '../lib/auth'
+import { getJsonBody } from '../lib/parseBody'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -13,8 +14,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('initDb', e)
     return res.status(500).json({ error: 'Database unavailable' })
   }
+  let body: { loginId?: string; password?: string }
   try {
-    const body = req.body as { loginId?: string; password?: string }
+    body = await getJsonBody<{ loginId?: string; password?: string }>(req)
+  } catch (e) {
+    console.error('parseBody', e)
+    return res.status(400).json({ error: '請求格式錯誤，請使用 JSON' })
+  }
+  try {
     const loginId = typeof body.loginId === 'string' ? body.loginId.trim() : ''
     const password = typeof body.password === 'string' ? body.password : ''
     if (!loginId || !password) {
