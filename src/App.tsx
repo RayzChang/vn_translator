@@ -70,6 +70,8 @@ function App() {
   const [authLoginId, setAuthLoginId] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsError, setSettingsError] = useState('')
   const [historyList, setHistoryList] = useState<HistoryItem[]>(getHistory)
   const [direction, setDirection] = useState<Direction>('vn2zh')
   const [region, setRegion] = useState<Region>('south')
@@ -116,6 +118,10 @@ function App() {
     if (showHistory) setHistoryList(getHistory())
   }, [showHistory])
 
+  useEffect(() => {
+    if (showSettings) setSettingsError('')
+  }, [showSettings])
+
   const handleTranslate = useCallback(async () => {
     setError('')
     setOutput('')
@@ -156,7 +162,9 @@ function App() {
   }, [token, user, apiKey, input, region, gender, direction, audience, tone, modelId])
 
   const handleSaveSettings = async () => {
+    setSettingsError('')
     if (token && user) {
+      setSettingsSaving(true)
       try {
         await apiSaveSettings(token, {
           apiKey: apiKey || undefined,
@@ -164,15 +172,17 @@ function App() {
           preferences: { dark }
         })
         if (apiKey) setStoredApiKey(apiKey)
+        setShowSettings(false)
       } catch (e) {
-        setError(e instanceof Error ? e.message : '同步失敗')
-        return
+        setSettingsError(e instanceof Error ? e.message : '同步失敗')
+      } finally {
+        setSettingsSaving(false)
       }
     } else {
       setStoredApiKey(apiKey)
       setStoredModel(modelId)
+      setShowSettings(false)
     }
-    setShowSettings(false)
   }
 
   const handleLogout = () => {
@@ -427,11 +437,19 @@ function App() {
                 清除翻譯紀錄
               </button>
             </div>
+            {settingsError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">{settingsError}</p>
+            )}
             <div className="flex gap-3 mt-6">
-              <button type="button" onClick={handleSaveSettings} className="btn-primary flex-1 py-3 rounded-2xl">
-                儲存並關閉
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={settingsSaving}
+                className="btn-primary flex-1 py-3 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {settingsSaving ? '儲存中…' : '儲存並關閉'}
               </button>
-              <button type="button" onClick={() => setShowSettings(false)} className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+              <button type="button" onClick={() => setShowSettings(false)} disabled={settingsSaving} className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50">
                 取消
               </button>
             </div>

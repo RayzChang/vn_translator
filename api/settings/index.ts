@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { initDb, query } from '../lib/db.js'
 import { getBearerToken, verifyToken } from '../lib/auth.js'
 import { encrypt } from '../lib/encrypt.js'
+import { getJsonBody } from '../lib/parseBody.js'
 
 interface SettingsRow {
   api_key_encrypted: string | null
@@ -40,7 +41,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST') {
-    const body = req.body as { apiKey?: string; modelId?: string; preferences?: Record<string, unknown> }
+    let body: { apiKey?: string; modelId?: string; preferences?: Record<string, unknown> }
+    try {
+      body = await getJsonBody(req)
+    } catch (e) {
+      console.error('settings parseBody', e)
+      return res.status(400).json({ error: '請求格式錯誤' })
+    }
     const apiKey = body.apiKey !== undefined ? (typeof body.apiKey === 'string' ? body.apiKey.trim() : null) : undefined
     const modelId = typeof body.modelId === 'string' ? body.modelId : undefined
     const preferences = body.preferences && typeof body.preferences === 'object' ? body.preferences : undefined
