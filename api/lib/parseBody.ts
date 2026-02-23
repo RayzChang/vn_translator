@@ -10,7 +10,10 @@ export async function getJsonBody<T = Record<string, unknown>>(req: VercelReques
   const raw = await new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = []
     const r = req as unknown as { on: (e: string, cb: (...args: unknown[]) => void) => void }
-    r.on('data', (chunk: Buffer) => chunks.push(chunk))
+    r.on('data', (...args: unknown[]) => {
+      const chunk = args[0]
+      if (chunk != null) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)))
+    })
     r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
     r.on('error', reject)
   })
