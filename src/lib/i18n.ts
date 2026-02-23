@@ -101,7 +101,12 @@ const tw = {
   tone_casual: '日常口語',
   tone_intimate: '親密隨意',
   tone_polite: '敬語',
-  offlineHint: '目前離線，需連線後才能翻譯'
+  offlineHint: '目前離線，需連線後才能翻譯',
+  addToVocabulary: '加入詞庫',
+  addedToVocabulary: '已加入詞庫',
+  updatedVocabulary: '已更新詞庫',
+  vocabLoginRequired: '需登入才能使用詞庫',
+  fromVocabulary: '來自詞庫'
 }
 
 const vn: Messages = {
@@ -188,7 +193,12 @@ const vn: Messages = {
   tone_casual: 'Khẩu ngữ hàng ngày',
   tone_intimate: 'Thân mật',
   tone_polite: 'Lịch sự, kính trọng',
-  offlineHint: 'Đang ngoại tuyến, cần kết nối mạng để dịch'
+  offlineHint: 'Đang ngoại tuyến, cần kết nối mạng để dịch',
+  addToVocabulary: 'Thêm vào từ điển',
+  addedToVocabulary: 'Đã thêm vào từ điển',
+  updatedVocabulary: 'Đã cập nhật từ điển',
+  vocabLoginRequired: 'Cần đăng nhập để dùng từ điển',
+  fromVocabulary: 'Từ từ điển'
 }
 
 const messages: Record<Locale, Messages> = { tw, vn }

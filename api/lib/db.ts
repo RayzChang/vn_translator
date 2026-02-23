@@ -41,4 +41,18 @@ export async function initDb(): Promise<void> {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+  await query(`
+    CREATE TABLE IF NOT EXISTS vocabulary (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      direction VARCHAR(10) NOT NULL CHECK (direction IN ('vn2zh', 'zh2vn')),
+      source_text TEXT NOT NULL,
+      target_text TEXT NOT NULL,
+      note TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, direction, source_text)
+    )
+  `)
+  await query(`CREATE INDEX IF NOT EXISTS idx_vocabulary_user_direction ON vocabulary(user_id, direction)`)
 }

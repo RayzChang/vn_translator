@@ -2,12 +2,18 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { initDb, query } from '../lib/db.js'
 import { getBearerToken, verifyToken } from '../lib/auth.js'
 import { decrypt } from '../lib/encrypt.js'
+import { getJsonBody } from '../lib/parseBody.js'
 import type { TranslateOptions } from '../lib/translate.js'
 import { translateWithGemini } from '../lib/translate.js'
 
 interface SettingsRow {
   api_key_encrypted: string | null
   model_id: string | null
+}
+
+interface VocabRow {
+  target_text: string
+  note: string | null
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -45,17 +51,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: '金鑰解密失敗' })
   }
 
-  const body = req.body as { text?: string; options?: Record<string, unknown> }
+  let body: { text?: string; options?: Record<string, unknown> }
+  try {
+    body = await getJsonBody(req)
+  } catch (e) {
+    console.error('translate parseBody', e)
+    return res.status(400).json({ error: '請求格式錯誤' })
+  }
   const text = typeof body.text === 'string' ? body.text.trim() : ''
   const opts = body.options && typeof body.options === 'object' ? body.options : {}
   if (!text) {
     return res.status(400).json({ error: '請輸入要翻譯的文字' })
   }
 
+  const direction = opts.direction === 'zh2vn' ? 'zh2vn' : 'vn2zh'
+
+  // P3: 先查詞庫，命中則直接回傳
+  const vocabRes = await query<VocabRow>(
+    'SELECT target_text, note FROM vocabulary WHERE user_id = $1 AND direction = $2 AND source_text = $3 LIMIT 1',
+    [payload.userId, direction, text]
+  )
+  const vocabRow = vocabRes.rows[0]
+  if (vocabRow) {
+    return res.status(200).json({
+      translation: vocabRow.target_text,
+      explanation: vocabRow.note || '',
+      backTranslation: undefined,
+      fromVocabulary: true
+    })
+  }
+
   const options: TranslateOptions = {
     region: (opts.region === 'north' ? 'north' : 'south'),
     gender: (opts.gender === 'female' || opts.gender === 'neutral' ? opts.gender : 'male'),
-    direction: (opts.direction === 'zh2vn' ? 'zh2vn' : 'vn2zh'),
+    direction,
     audience: (['none', 'elder', 'peer', 'younger', 'lover', 'boss', 'colleague', 'friend', 'stranger'].includes(String(opts.audience)) ? opts.audience : 'none') as TranslateOptions['audience'],
     tone: (['auto', 'formal', 'casual', 'intimate', 'polite'].includes(String(opts.tone)) ? opts.tone : 'auto') as TranslateOptions['tone'],
     modelId: (opts.modelId as string) || row.model_id || 'gemini-2.5-flash'

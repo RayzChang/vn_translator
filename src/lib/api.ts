@@ -99,10 +99,39 @@ export async function apiTranslate(
   token: string,
   text: string,
   options: TranslateOptions
-): Promise<{ translation: string; explanation: string; backTranslation?: string }> {
-  return request<{ translation: string; explanation: string; backTranslation?: string }>('/translate', {
+): Promise<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean }> {
+  return request<{ translation: string; explanation: string; backTranslation?: string; fromVocabulary?: boolean }>('/translate', {
     method: 'POST',
     token,
     body: { text, options }
   })
+}
+
+export interface VocabItem {
+  id: string
+  direction: string
+  source_text: string
+  target_text: string
+  note: string | null
+  created_at: string
+}
+
+export async function apiGetVocabulary(token: string, direction?: 'vn2zh' | 'zh2vn'): Promise<{ items: VocabItem[] }> {
+  const q = direction ? `?direction=${direction}` : ''
+  return request<{ items: VocabItem[] }>(`/vocabulary${q}`, { token })
+}
+
+export async function apiAddVocabulary(
+  token: string,
+  body: { sourceText: string; targetText: string; direction: 'vn2zh' | 'zh2vn'; note?: string }
+): Promise<{ item: VocabItem; updated: boolean }> {
+  return request<{ item: VocabItem; updated: boolean }>('/vocabulary', {
+    method: 'POST',
+    token,
+    body
+  })
+}
+
+export async function apiDeleteVocabulary(token: string, id: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/vocabulary?id=${encodeURIComponent(id)}`, { method: 'DELETE', token })
 }

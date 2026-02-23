@@ -29,6 +29,7 @@ import {
   apiGetSettings,
   apiSaveSettings,
   apiTranslate,
+  apiAddVocabulary,
   type ApiUser
 } from './lib/api'
 
@@ -87,6 +88,9 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copyToast, setCopyToast] = useState(false)
+  const [vocabToast, setVocabToast] = useState<'added' | 'updated' | null>(null)
+  const [lastTranslated, setLastTranslated] = useState<{ source: string; target: string; direction: Direction } | null>(null)
+  const [fromVocabulary, setFromVocabulary] = useState(false)
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [isListening, setIsListening] = useState(false)
 
@@ -155,10 +159,14 @@ function App() {
       setOutput(result.translation)
       setExplanation(result.explanation)
       setBackTranslation(result.backTranslation ?? '')
+      setFromVocabulary((result as { fromVocabulary?: boolean }).fromVocabulary ?? false)
+      setLastTranslated({ source: input.trim(), target: result.translation, direction })
       addHistory({ input: input.trim(), output: result.translation, direction })
       setHistoryList(getHistory())
     } catch (e) {
       setError(e instanceof Error ? e.message : '翻譯失敗')
+      setLastTranslated(null)
+      setFromVocabulary(false)
     } finally {
       setLoading(false)
     }
@@ -243,6 +251,22 @@ function App() {
     }
   }, [output])
 
+  const handleAddToVocabulary = useCallback(async () => {
+    if (!token || !user || !lastTranslated) return
+    try {
+      const { updated } = await apiAddVocabulary(token, {
+        sourceText: lastTranslated.source,
+        targetText: lastTranslated.target,
+        direction: lastTranslated.direction,
+        note: explanation || undefined
+      })
+      setVocabToast(updated ? 'updated' : 'added')
+      setTimeout(() => setVocabToast(null), 2000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '加入詞庫失敗')
+    }
+  }, [token, user, lastTranslated, explanation])
+
   const swapInputOutput = useCallback(() => {
     if (!output) return
     setInput(output)
@@ -303,7 +327,10 @@ function App() {
     setInput(item.input)
     setOutput(item.output)
     setBackTranslation('')
+    setExplanation('')
+    setFromVocabulary(false)
     setDirection(item.direction)
+    setLastTranslated({ source: item.input, target: item.output, direction: item.direction })
     setShowHistory(false)
   }, [])
 
@@ -578,8 +605,13 @@ function App() {
 
           <div className="mt-4 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                 {direction === 'vn2zh' ? t(locale, 'chinese') : t(locale, 'vietnamese')}
+                {fromVocabulary && (
+                  <span className="text-[10px] font-normal text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    {t(locale, 'fromVocabulary')}
+                  </span>
+                )}
               </span>
               {output && (
                 <div className="flex items-center gap-1">
@@ -594,6 +626,15 @@ function App() {
                   <button type="button" onClick={copyResult} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium min-h-[44px] min-w-[44px] flex items-center justify-center">
                     {t(locale, 'copy')}
                   </button>
+                  {token && user && lastTranslated && (
+                    <button
+                      type="button"
+                      onClick={handleAddToVocabulary}
+                      className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 font-medium min-h-[44px] px-3 flex items-center justify-center rounded-lg hover:bg-amber-500/10 transition-colors"
+                    >
+                      {t(locale, 'addToVocabulary')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -619,9 +660,9 @@ function App() {
             )}
           </div>
 
-          {copyToast && (
+          {(copyToast || vocabToast) && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-slate-800/95 dark:bg-slate-700/95 backdrop-blur-sm text-white text-sm shadow-lg z-50 animate-fade-in" style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }} role="status">
-              {t(locale, 'copied')}
+              {copyToast ? t(locale, 'copied') : vocabToast === 'updated' ? t(locale, 'updatedVocabulary') : t(locale, 'addedToVocabulary')}
             </div>
           )}
         </main>

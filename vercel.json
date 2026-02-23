@@ -7,6 +7,7 @@
     "api/auth/login.ts": { "includeFiles": "api/lib/**" },
     "api/auth/register.ts": { "includeFiles": "api/lib/**" },
     "api/settings/index.ts": { "includeFiles": "api/lib/**" },
-    "api/translate/index.ts": { "includeFiles": "api/lib/**" }
+    "api/translate/index.ts": { "includeFiles": "api/lib/**" },
+    "api/vocabulary/index.ts": { "includeFiles": "api/lib/**" }
   }
 }
